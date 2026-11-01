@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Optimization History — Resume Optimizer{% endblock %}
+{% block content %}
+<section class="intro">
+  <p class="eyebrow">Your local library</p>
+  <h1>Keep the work behind every application.</h1>
+  <p class="lede">Revisit your latest 50 optimizations, compare match estimates, and recover editable resumes without making another model request.</p>
+  <p class="hint">Saved analysis and wording remain on this computer. Open a result and recompile locally when you need a fresh PDF. Deleting history does not remove your confirmed knowledge.</p>
+</section>
+<div class="history-list">
+  {% for run in runs %}
+  <article class="panel history-card">
+    <div>
+      <p class="eyebrow">{{ run.created_at }}{% if run.demo_mode %} · Local demo{% endif %}</p>
+      <h2><a href="{{ url_for('main.history_result', run_id=run.id) }}">{{ run.role_title or 'Resume optimization' }}</a></h2>
+      {% if run.company %}<p>{{ run.company }}</p>{% endif %}
+      <p class="hint">Internal match: {{ run.original_score or 0 }} → <strong>{{ run.optimized_score or 0 }}/100</strong></p>
+      <span class="badge {{ 'ok' if run.target_reached else 'wait' }}">{{ '95+ target reached' if run.target_reached else 'Evidence gaps remain' }}</span>
+    </div>
+    <div class="history-actions">
+      <a class="btn btn-primary" href="{{ url_for('main.history_result', run_id=run.id) }}">Open result</a>
+      <form method="post" action="{{ url_for('main.delete_history', run_id=run.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost" type="submit">Delete history</button>
+      </form>
+    </div>
+  </article>
+  {% else %}
+  <section class="panel empty-state"><h2>Your next optimization starts here.</h2><p>Every completed result will be saved here with its role analysis, evidence, and editable output.</p><a class="btn btn-primary" href="{{ url_for('main.index') }}">Optimize a resume</a></section>
+  {% endfor %}
+</div>
+{% endblock %}

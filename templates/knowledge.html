@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Base — Resume Optimizer{% endblock %}
+{% block content %}
+<section class="intro">
+  <p class="eyebrow">Your local library</p>
+  <h1>Your experience, ready to reuse.</h1>
+  <p class="lede">Save confirmed achievements, project details, skills, and metrics once. Future optimizations find the facts most relevant to each role.</p>
+  <p class="hint">Stored on this computer for its local user. Include the employer or project name so achievements stay attached to the right experience. Generated resumes and job requirements never become confirmed knowledge automatically.</p>
+</section>
+<div class="grid-2 knowledge-layout">
+  <section class="panel">
+    <h2>Add confirmed knowledge</h2>
+    <form method="post" action="{{ url_for('main.knowledge') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="knowledge-title">Title</label>
+      <input id="knowledge-title" type="text" name="title" maxlength="200" required placeholder="BrightPath Labs — payments API improvements" value="{{ input_values.get('title', '') }}">
+      <label for="knowledge-category">Category</label>
+      <select id="knowledge-category" name="category">
+        {% for value, label in [('accomplishment', 'Accomplishment'), ('metric', 'Metric'), ('responsibility', 'Responsibility'), ('skill', 'Skill'), ('project', 'Project')] %}
+        <option value="{{ value }}"{% if input_values.get('category', 'accomplishment') == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <label for="knowledge-content">Confirmed facts</label>
+      <textarea id="knowledge-content" name="content" rows="8" maxlength="10000" required placeholder="At BrightPath Labs, I reduced payments API p95 latency from 900ms to 220ms by optimizing PostgreSQL queries.">{{ input_values.get('content', '') }}</textarea>
+      <label class="checkbox-label" for="knowledge-confirmed"><input id="knowledge-confirmed" name="confirmed" type="checkbox" value="1" required{% if input_values.get('confirmed') == '1' %} checked{% endif %}> These facts describe my own verified experience.</label>
+      <button class="btn btn-primary" type="submit"{% if not library_available %} disabled{% endif %}>Save knowledge</button>
+    </form>
+  </section>
+  <section aria-labelledby="saved-knowledge-heading">
+    <h2 id="saved-knowledge-heading">Saved knowledge <span class="optional">({{ entries|length }})</span></h2>
+    {% for entry in entries %}
+    <article class="panel library-card">
+      <p class="eyebrow">{{ entry.category }} · {{ entry.created_at }}</p>
+      <h3>{{ entry.title }}</h3>
+      <p class="stored-text">{{ entry.content }}</p>
+      <form method="post" action="{{ url_for('main.delete_knowledge', entry_id=entry.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost" type="submit">Remove saved fact</button>
+      </form>
+    </article>
+    {% else %}
+    <div class="panel empty-state"><h3>Start with one useful fact.</h3><p>A measurable achievement or a project detail gives future resumes evidence beyond your current one-page source.</p></div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

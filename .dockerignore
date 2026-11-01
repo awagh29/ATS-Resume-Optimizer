@@ -1,0 +1,12 @@
+.venv
+.env
+.tools
+.git
+.pytest_cache
+__pycache__
+*.pyc
+tmp
+output
+.qodo
+data
+*.sqlite3*

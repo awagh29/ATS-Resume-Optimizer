@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Resume Optimizer{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="{{ url_for('main.index') }}">Resume Optimizer</a>
+      <p class="tagline">Your experience, remembered. Your next role, understood.</p>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="{{ url_for('main.index') }}"{% if request.endpoint in ['main.index', 'main.optimize'] %} aria-current="page"{% endif %}>Optimize resume</a>
+        <a href="{{ url_for('main.knowledge') }}"{% if request.endpoint == 'main.knowledge' %} aria-current="page"{% endif %}>Knowledge base</a>
+        <a href="{{ url_for('main.history') }}"{% if request.endpoint in ['main.history', 'main.history_result'] %} aria-current="page"{% endif %}>Optimization history</a>
+      </nav>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="wrap flash-wrap" role="status">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <main id="main" class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Knowledge and optimization history are saved on this computer for its local user. Claude receives your resume, job description, and relevant confirmed facts when configured. PDF downloads expire; saved history keeps editable output.</p>
+      <p>Internal match estimates are application-calculated and are <strong>not</strong> employer ATS scores.</p>
+    </div>
+  </footer>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

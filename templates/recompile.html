@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Recompile — Resume Optimizer{% endblock %}
+
+{% block content %}
+<nav class="crumb"><a href="{{ url_for('main.index') }}">&larr; New optimization</a></nav>
+
+<h1>Recompile result</h1>
+
+{% if error %}
+<aside class="banner banner-error" role="alert">{{ error }}</aside>
+{% endif %}
+
+{% if warnings %}
+<ul class="banner banner-warn">{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% if has_pdf %}
+<p>
+  Page count: {{ page_count or "?" }}
+  {% if layout_verified %}· Verified as exactly one page{% endif %}
+</p>
+<div class="resume-pdf-sheet">
+  <img class="resume-pdf-image" src="{{ url_for('main.preview_image') }}" alt="Rendered one-page resume preview">
+</div>
+<p><a class="btn btn-secondary" href="{{ url_for('main.download_pdf') }}">Download PDF</a></p>
+{% endif %}
+
+<form method="post" action="{{ url_for('main.recompile') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="latex_source">LaTeX source</label>
+  <textarea id="latex_source" name="latex_source" rows="20" class="code">{{ latex_source }}</textarea>
+  <button type="submit" class="btn btn-secondary">Recompile again</button>
+</form>
+<form method="post" action="{{ url_for('main.download_tex') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="latex_source" value="{{ latex_source }}">
+  <button type="submit" class="btn btn-ghost">Download .tex</button>
+</form>
+{% endblock %}

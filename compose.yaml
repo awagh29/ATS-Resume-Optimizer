@@ -1,0 +1,27 @@
+services:
+  resume-optimizer:
+    build: .
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      HOST: 0.0.0.0
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-5-5}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-}
+      LATEX_TIMEOUT_SECONDS: 30
+      KNOWLEDGE_DB_PATH: /app/data/knowledge.sqlite3
+    volumes:
+      - resume-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 128
+
+volumes:
+  resume-data:

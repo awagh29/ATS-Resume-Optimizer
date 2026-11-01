@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Please try again — Resume Optimizer{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Please try again</h1>
+  <p role="alert">{{ message }}</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">New optimization</a>
+</section>
+{% endblock %}

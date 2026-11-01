@@ -1,0 +1,37 @@
+Senior Backend Engineer
+Northwind Analytics — San Francisco, CA (Hybrid)
+
+About the role
+Northwind Analytics is hiring a Senior Backend Engineer to design, build, and operate reliable APIs and data services that power our customer-facing analytics product. You will own backend delivery for high-traffic endpoints, partner closely with product and data teams, and raise the bar for observability and operational excellence.
+
+Responsibilities
+- Design and implement scalable REST APIs and backend services in Python
+- Build and maintain data pipelines that transform product events into analytics-ready datasets
+- Operate services on AWS with strong monitoring, alerting, and incident response habits
+- Collaborate with product managers, analysts, and frontend engineers to deliver customer outcomes
+- Improve reliability, performance, and developer experience through testing and CI/CD
+- Mentor engineers through code review and technical guidance
+
+Required qualifications
+- 4+ years of professional software engineering experience
+- Strong proficiency in Python and SQL
+- Experience building production REST APIs
+- Hands-on experience with PostgreSQL or similar relational databases
+- Experience deploying and operating services on AWS
+- Familiarity with Docker and CI/CD pipelines
+- Clear written and verbal communication skills
+
+Preferred qualifications
+- Experience with FastAPI or Flask
+- Experience with Redis, event-driven systems, or streaming pipelines
+- Exposure to ECS, S3, and CloudWatch
+- Prior work on analytics, telemetry, or customer-facing dashboards
+- Mentorship or tech-lead experience
+
+Nice to have
+- Kubernetes experience
+- dbt or warehouse modeling experience
+
+Logistical requirements
+- Must be authorized to work in the United States
+- Hybrid presence in the San Francisco Bay Area preferred

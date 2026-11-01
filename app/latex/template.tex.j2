@@ -1,0 +1,101 @@
+\documentclass[10pt,{{ page_class }}]{article}
+
+% Controlled ATS-friendly single-column resume template.
+% Generated content only — uploaded source is never blindly compiled.
+
+\usepackage[margin={{ margin_in }}in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{microtype}
+
+\hypersetup{colorlinks=false,pdfborder={0 0 0}}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\setlist[itemize]{leftmargin=*,itemsep={{ item_sep }}em,topsep=0.1em,parsep=0pt,partopsep=0pt}
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{ {{ section_top }}em}{ {{ section_bot }}em}
+\renewcommand{\baselinestretch}{ {{ baselinestretch }} }
+
+\begin{document}
+\begin{center}
+{\LARGE\bfseries {{ contact.name | latex_escape }}}\\[0.35em]
+\normalsize {{ contact_line }}
+\end{center}
+\vspace{ {{ header_vspace }}em}
+
+{% if summary %}
+\section*{Summary}
+{{ summary | latex_escape }}
+{% endif %}
+
+{% if experience %}
+\section*{Experience}
+{% for role in experience %}
+\textbf{ {{ role.title | latex_escape }}{% if role.functional_descriptor %} --- {{ role.functional_descriptor | latex_escape }}{% endif %} }
+\hfill {{ role.start_date | latex_escape }} -- {{ role.end_date | latex_escape }}\\
+\textit{ {{ role.employer | latex_escape }}{% if role.location %}, {{ role.location | latex_escape }}{% endif %} }
+{% if role.bullets %}
+\begin{itemize}
+{% for b in role.bullets %}
+  \item {{ b.text | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+\vspace{ {{ role_vspace }}em}
+{% endfor %}
+{% endif %}
+
+{% if projects %}
+\section*{Projects}
+{% for proj in projects %}
+\textbf{ {{ proj.name | latex_escape }} }{% if proj.technologies %} \textit{({{ proj.technologies | map('latex_escape') | join(', ') }})}{% endif %}
+{% if proj.bullets %}
+\begin{itemize}
+{% for b in proj.bullets %}
+  \item {{ b.text | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if skills %}
+\section*{Skills}
+{% for sg in skills %}
+\textbf{ {{ sg.category | latex_escape }}:} {{ sg.skills | map('latex_escape') | join(', ') }}\\
+{% endfor %}
+{% endif %}
+
+{% if education %}
+\section*{Education}
+{% for edu in education %}
+\textbf{ {{ edu.institution | latex_escape }} }\hfill {{ edu.graduation_date | latex_escape }}\\
+{{ edu.degree | latex_escape }}{% if edu.field %} in {{ edu.field | latex_escape }}{% endif %}
+{% if edu.details %}
+\begin{itemize}
+{% for d in edu.details %}
+  \item {{ d | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+\vspace{0.2em}
+{% endfor %}
+{% endif %}
+
+{% if certifications %}
+\section*{Certifications}
+\begin{itemize}
+{% for c in certifications %}
+  \item {{ c | latex_escape }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+\end{document}

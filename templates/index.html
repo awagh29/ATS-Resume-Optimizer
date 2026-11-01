@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Resume Optimizer — Analyze &amp; Optimize{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h1>Turn the full job description into your next resume.</h1>
+  <p class="lede">
+    Reverse engineer hiring priorities, qualifications, tools, and expected outcomes.
+    Match them to your resume and saved knowledge, then tailor a one-page resume toward a 95+ match.
+    The estimate reflects your supported experience; employer ATS results can vary.
+  </p>
+</section>
+
+{% if demo_mode %}
+<aside class="banner banner-demo" role="status">
+  <strong>Demo mode</strong> — {{ demo_notice }}
+</aside>
+{% endif %}
+
+<div class="setup-status" aria-label="Application readiness">
+  <span class="badge {{ 'wait' if demo_mode else 'ok' }}">{{ 'Claude key needed · local demo available' if demo_mode else 'Claude configured · ' ~ claude_model }}</span>
+  <span class="badge {{ 'ok' if compiler_available else 'wait' }}">{{ 'LaTeX compiler available' if compiler_available else 'LaTeX compiler needed for PDF' }}</span>
+  <span class="badge {{ 'ok' if library_available else 'wait' }}">{{ knowledge_count }} saved facts · {{ history_count }} recent optimizations</span>
+</div>
+{% if demo_mode or not compiler_available %}
+<details class="setup-help panel">
+  <summary>Finish setup for Claude and PDF</summary>
+  {% if demo_mode %}<p>Add your Anthropic API key as <code>ANTHROPIC_API_KEY</code> in the server's <code>.env</code> file and restart the app. Keep your key out of resumes and job descriptions.</p>{% endif %}
+  {% if not compiler_available %}<p>Install TeX Live, MiKTeX, or Tectonic and set <code>LATEX_COMPILER</code> if needed, then restart. The Docker setup includes a compiler. LaTeX is still available when compilation cannot run.</p>{% endif %}
+</details>
+{% endif %}
+
+<form id="optimize-form" class="optimize-form" method="post" action="{{ url_for('main.optimize') }}" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid-2">
+    <fieldset class="panel">
+      <legend>Your resume (LaTeX)</legend>
+      <label for="resume_latex">LaTeX source</label>
+      <textarea id="resume_latex" name="resume_latex" rows="18" maxlength="{{ max_resume }}" required placeholder="Paste your .tex resume source here…">{{ input_values.get('resume_latex', '') }}</textarea>
+      <div class="row">
+        <label class="file-label" for="resume_file">Or upload <code>.tex</code></label>
+        <input id="resume_file" name="resume_file" type="file" accept=".tex,text/plain,application/x-tex">
+      </div>
+      <p class="hint">Upload a UTF-8 <code>.tex</code> file. Your existing resume provides the facts; the final PDF uses a clean, single-column template.</p>
+      <button type="button" class="btn btn-ghost" id="load-sample-resume" data-sample="resume">Load sample resume</button>
+    </fieldset>
+
+    <fieldset class="panel">
+      <legend>Target job</legend>
+      <label for="job_description">Complete job description</label>
+      <textarea id="job_description" name="job_description" rows="14" maxlength="{{ max_jd }}" required placeholder="Paste the full job description…">{{ input_values.get('job_description', '') }}</textarea>
+      <div class="row pair">
+        <div>
+          <label for="company">Company <span class="optional">(optional)</span></label>
+          <input id="company" name="company" type="text" maxlength="200" placeholder="Acme Corp" value="{{ input_values.get('company', '') }}">
+        </div>
+        <div>
+          <label for="role_title">Role title <span class="optional">(optional)</span></label>
+          <input id="role_title" name="role_title" type="text" maxlength="200" placeholder="Senior Software Engineer" value="{{ input_values.get('role_title', '') }}">
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost" id="load-sample-jd" data-sample="jd">Load sample job description</button>
+    </fieldset>
+  </div>
+
+  <fieldset class="panel">
+    <legend>Supplemental facts <span class="optional">(optional, confirmed only)</span></legend>
+    <p class="hint">Keep recurring achievements and skills in your <a href="{{ url_for('main.knowledge') }}">knowledge base</a>. This field adds facts for the current optimization only.</p>
+    <p class="hint">
+      Use this for <em>verified</em> metrics, responsibilities, accomplishments, skills, or projects
+      not already in the resume. Prefix lines with <code>Metric:</code>, <code>Skill:</code>, etc. when helpful.
+      Name the employer or project for each metric or accomplishment so it is attached to the right experience.
+      These are treated as confirmed facts. Review final wording before using the resume.
+    </p>
+    <label for="supplemental">Confirmed supplemental information</label>
+    <textarea id="supplemental" name="supplemental" rows="6" maxlength="{{ max_supp }}" placeholder="Metric: At BrightPath Labs, reduced p95 latency from 900ms to 220ms&#10;Skill: dbt&#10;Accomplishment: At BrightPath Labs, owned the payments API on-call rotation">{{ input_values.get('supplemental', '') }}</textarea>
+  </fieldset>
+
+  <fieldset class="panel">
+    <legend>Your local knowledge</legend>
+    <label for="use_knowledge">Use saved facts for this optimization</label>
+    <select id="use_knowledge" name="use_knowledge">
+      <option value="1"{% if input_values.get('use_knowledge', '1') != '0' %} selected{% endif %}>Find relevant confirmed facts in my knowledge base</option>
+      <option value="0"{% if input_values.get('use_knowledge') == '0' %} selected{% endif %}>Use only the resume and facts entered above</option>
+    </select>
+    <p class="hint">{{ knowledge_count }} facts available. Only relevant facts are selected to keep model usage focused. Every result is saved to <a href="{{ url_for('main.history') }}">optimization history</a>; generated wording is never treated as a new confirmed fact.</p>
+  </fieldset>
+
+  <fieldset class="panel controls">
+    <legend>Output</legend>
+    <div class="row pair">
+      <div>
+        <label for="page_size">Page size</label>
+        <select id="page_size" name="page_size">
+          <option value="letter"{% if input_values.get('page_size', 'letter') != 'a4' %} selected{% endif %}>US Letter</option>
+          <option value="a4"{% if input_values.get('page_size') == 'a4' %} selected{% endif %}>A4</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" id="submit-btn">{{ 'Try local demo' if demo_mode else 'Optimize with Claude' }}</button>
+        <p class="hint progress-hint" id="progress-hint" hidden role="status" aria-live="polite">Working — reading your experience, matching the role, tailoring, and checking the one-page PDF. This can take a few minutes.</p>
+      </div>
+    </div>
+  </fieldset>
+</form>
+
+<template id="sample-resume-data">{{ sample_resume }}</template>
+<template id="sample-jd-data">{{ sample_jd }}</template>
+{% endblock %}

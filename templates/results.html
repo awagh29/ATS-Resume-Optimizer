@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% block title %}Optimization Results — Resume Optimizer{% endblock %}
+
+{% block content %}
+<nav class="crumb"><a href="{{ url_for('main.index') }}">&larr; New optimization</a></nav>
+
+<header class="result-hero">
+  <p class="eyebrow">Your tailored resume</p>
+  <h1>{{ 'Your one-page resume is ready' if has_pdf else 'Review your resume output' }}</h1>
+  <p class="lede">{% if has_pdf %}Compiled from LaTeX and verified as exactly one page. Download your files or review the preview below.{% else %}Your editable LaTeX is ready. Review the compilation message and update the source to create a verified one-page PDF.{% endif %}</p>
+  <div class="result-actions">
+    {% if has_pdf %}<a class="btn btn-primary" href="{{ url_for('main.download_pdf') }}">Download PDF</a>{% endif %}
+    <form method="post" action="{{ url_for('main.download_tex') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="latex_source" value="{{ latex_source }}">
+      <button type="submit" class="btn {{ 'btn-ghost' if has_pdf else 'btn-primary' }}">Download LaTeX</button>
+    </form>
+    <span class="hint">{{ page_size | upper }}{% if has_pdf %} · 1 page{% endif %}</span>
+  </div>
+</header>
+
+{% if saved_run %}
+<aside class="banner banner-demo" role="status">
+  <strong>Saved optimization</strong> · {{ saved_run.created_at }}. Your editable resume and analysis were restored locally. Recompile below to create a fresh verified PDF.
+</aside>
+{% elif result.run_id %}
+<p class="hint">Saved to <a href="{{ url_for('main.history_result', run_id=result.run_id) }}">your optimization history</a>.</p>
+{% endif %}
+
+{% if demo_mode %}
+<aside class="banner banner-demo" role="status">
+  <strong>Demo mode</strong> — {{ demo_notice }}
+</aside>
+{% endif %}
+
+{% if result.errors %}
+<aside class="banner banner-error" role="alert">
+  {% for e in result.errors %}<p>{{ e }}</p>{% endfor %}
+</aside>
+{% endif %}
+
+{% if result.warnings %}
+<details class="banner banner-warn">
+  <summary>{{ result.warnings|length }} warning(s)</summary>
+  <ul>{% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+
+<section class="panel">
+  <h2>Resume PDF preview</h2>
+  {% if has_pdf %}
+  <p class="hint">
+    Compiled and verified as exactly one page.
+    Page count: {{ result.compilation.page_count or "?" }}
+  </p>
+  {% if result.compilation.warnings %}
+  <ul>{% for w in result.compilation.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="resume-pdf-sheet">
+    <img class="resume-pdf-image" src="{{ url_for('main.preview_image') }}" alt="Rendered one-page resume preview">
+  </div>
+  {% else %}
+  <p class="banner banner-warn">
+    A verified one-page PDF is not available. Your editable LaTeX is below.
+    {% if result.compilation.error %}{{ result.compilation.error }}{% endif %}
+  </p>
+  {% endif %}
+</section>
+
+<details class="panel result-detail" id="latex-editor" {% if not has_pdf %}open{% endif %}>
+  <summary>Edit LaTeX and recompile</summary>
+  <div class="detail-content">
+<p class="hint">Edit the generated wording, then recompile. PDF downloads require exactly one page with readable text. Keep the template's packages and commands.</p>
+  <form method="post" action="{{ url_for('main.recompile') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="latex_source">Generated LaTeX</label>
+    <textarea id="latex_source" name="latex_source" rows="20" class="code">{{ latex_source }}</textarea>
+    <div class="row actions-inline">
+      <button type="submit" class="btn btn-secondary">Recompile PDF</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('main.download_tex') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="latex_source" value="{{ latex_source }}">
+    <button type="submit" class="btn btn-ghost">Download .tex</button>
+  </form>
+  </div>
+</details>
+
+<details class="panel result-detail" >
+  <summary>Match estimate: {{ result.original_assessment.score.total }} → {{ result.optimized_assessment.score.total }}</summary>
+  <div class="detail-content">
+<p class="lede small">
+    Application-calculated using a documented rubric on the same requirement matrix for both versions.
+    This is <strong>not</strong> an employer ATS score. Target 95+ only when evidence supports it.
+  </p>
+  <div class="score-grid">
+    <div class="score-card">
+      <h2>Original</h2>
+      <p class="score-num">{{ result.original_assessment.score.total }}</p>
+      <ul class="score-breakdown">
+        <li>Required qualifications: {{ result.original_assessment.score.required_qualification_evidence }}/35</li>
+        <li>Primary responsibilities: {{ result.original_assessment.score.primary_responsibility_coverage }}/25</li>
+        <li>Skills &amp; terminology: {{ result.original_assessment.score.skills_and_terminology }}/15</li>
+        <li>Accomplishment quality: {{ result.original_assessment.score.evidence_and_accomplishment_quality }}/15</li>
+        <li>ATS structure: {{ result.original_assessment.score.ats_readability_and_structure }}/10</li>
+      </ul>
+    </div>
+    <div class="score-card score-card-opt">
+      <h2>Optimized</h2>
+      <p class="score-num">{{ result.optimized_assessment.score.total }}</p>
+      <ul class="score-breakdown">
+        <li>Required qualifications: {{ result.optimized_assessment.score.required_qualification_evidence }}/35</li>
+        <li>Primary responsibilities: {{ result.optimized_assessment.score.primary_responsibility_coverage }}/25</li>
+        <li>Skills &amp; terminology: {{ result.optimized_assessment.score.skills_and_terminology }}/15</li>
+        <li>Accomplishment quality: {{ result.optimized_assessment.score.evidence_and_accomplishment_quality }}/15</li>
+        <li>ATS structure: {{ result.optimized_assessment.score.ats_readability_and_structure }}/10</li>
+      </ul>
+      {% if result.target_reached %}
+      <p class="badge ok">Target 95+ reached (evidence-supported)</p>
+      {% else %}
+      <p class="badge wait">95+ target not reached</p>
+      {% endif %}
+    </div>
+  </div>
+  {% if result.optimized_assessment.score.mandatory_gaps %}
+  <div class="gap-callout" role="status">
+    <h3>Mandatory qualification gaps</h3>
+    <ul>
+      {% for g in result.optimized_assessment.score.mandatory_gaps %}
+      <li>{{ g }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if result.score_ceiling_reason %}
+  <p class="ceiling">{{ result.score_ceiling_reason }}</p>
+  {% endif %}
+  <p class="meta">Passes used: {{ result.passes_used }} · Positioning: {{ result.positioning.framing }}</p>
+  </div>
+</details>
+
+{% if result.token_usage or result.knowledge_used %}
+<details class="panel result-detail">
+  <summary>Saved knowledge and model usage</summary>
+  <div class="detail-content">
+    {% if result.knowledge_used %}
+    <h3>Knowledge selected for this role</h3>
+    <p class="hint">These confirmed source facts were considered alongside your resume. Only claims that pass the evidence checks are retained.</p>
+    <ul class="source-list">
+      {% for entry in result.knowledge_used %}
+      <li><strong>{{ entry.title or entry.id }}</strong>{% if entry.category %} · {{ entry.category }}{% endif %}
+        {% if entry.content %}<p class="stored-text">{{ entry.content }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No saved knowledge was selected for this optimization.</p>
+    {% endif %}
+    {% if result.token_usage %}
+    {% set usage = result.token_usage %}
+    <h3>Model usage</h3>
+    <dl class="kv">
+      <dt>Model</dt><dd>{{ usage.get('model', 'Claude Sonnet 5.5') }}</dd>
+      <dt>Requests made</dt><dd>{{ usage.get('requests', usage.get('api_calls', 0)) }}</dd>
+      <dt>New input tokens</dt><dd>{{ usage.get('input_tokens', 0) }}</dd>
+      <dt>Output tokens</dt><dd>{{ usage.get('output_tokens', 0) }}</dd>
+      <dt>Cached input tokens</dt><dd>{{ usage.get('cache_read_input_tokens', 0) }}</dd>
+      <dt>Input tokens written to cache</dt><dd>{{ usage.get('cache_creation_input_tokens', 0) }}</dd>
+      <dt>Total input tokens</dt><dd>{{ usage.get('total_input_tokens', usage.get('input_tokens', 0)) }}</dd>
+      <dt>Locally reused responses</dt><dd>{{ usage.get('local_cache_hits', usage.get('cache_hits', 0)) }}</dd>
+    </dl>
+    <p class="hint">Local reuse needs no model request. Provider cache reads are reported separately from new input.</p>
+    {% endif %}
+  </div>
+</details>
+{% endif %}
+
+<details class="panel result-detail" >
+  <summary>Gaps and recommendations</summary>
+  <div class="detail-content">
+<div class="grid-2">
+    <div>
+      <h3>Remaining gaps</h3>
+      <ul>
+        {% for g in result.gaps %}
+        <li>
+          <strong>[{{ g.classification }} / {{ g.gap_type }}]</strong> {{ g.requirement }}
+          <div class="hint">{{ g.recommendation }}</div>
+          {% if g.clarification_question %}<div class="q">Q: {{ g.clarification_question }}</div>{% endif %}
+        </li>
+        {% else %}
+        <li>No major gaps flagged.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      <h3>Clarification questions</h3>
+      <p class="hint">These are unanswered questions — not confirmed facts.</p>
+      <ul>
+        {% for q in result.clarification_questions %}
+        <li>{{ q }}</li>
+        {% else %}
+        <li>None</li>
+        {% endfor %}
+      </ul>
+      <h3>Prioritized next actions</h3>
+      <ol>
+        {% for a in result.next_actions %}
+        <li>{{ a }}</li>
+        {% endfor %}
+      </ol>
+      <h3>Insights</h3>
+      <ul>
+        {% for r in result.recommendations %}
+        <li>{{ r }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  </div>
+</details>
+
+<details class="panel result-detail" >
+  <summary>Role analysis and evidence</summary>
+  <div class="detail-content">
+<dl class="kv">
+    <dt>Role</dt><dd>{{ result.job_analysis.role_title or "—" }}</dd>
+    <dt>Seniority</dt><dd>{{ result.job_analysis.seniority or "—" }}</dd>
+    <dt>Positioning chosen</dt><dd>{{ result.positioning.framing }} — {{ result.positioning.rationale }}</dd>
+  </dl>
+  {% if result.positioning.alternatives_considered %}
+  <p class="hint">Alternatives considered: {{ result.positioning.alternatives_considered | join('; ') }}</p>
+  {% endif %}
+
+  <h3>Top hiring priorities</h3>
+  <ol>
+    {% for p in result.job_analysis.hiring_priorities %}
+    <li>{{ p }}</li>
+    {% else %}
+    <li>None extracted</li>
+    {% endfor %}
+  </ol>
+
+  <h3>Primary responsibilities</h3>
+  <ul>
+    {% for r in result.job_analysis.primary_responsibilities %}
+    <li>{{ r }}</li>
+    {% endfor %}
+  </ul>
+
+  <div class="grid-2">
+    <div>
+      <h3>Required qualifications</h3>
+      <ul>{% for r in result.job_analysis.required_qualifications %}<li>{{ r }}</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <h3>Preferred qualifications</h3>
+      <ul>{% for r in result.job_analysis.preferred_qualifications %}<li>{{ r }}</li>{% else %}<li>None listed</li>{% endfor %}</ul>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3>Tools and technology</h3>
+      <ul>{% for item in result.job_analysis.tools_and_tech %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+      <h3>Domain vocabulary</h3>
+      <ul>{% for item in result.job_analysis.domain_vocabulary %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+      <h3>Eligibility constraints</h3>
+      <ul>{% for item in result.job_analysis.eligibility_constraints %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <h3>Expected outcomes</h3>
+      <ul>{% for item in result.job_analysis.deliverables_and_outcomes %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+      <h3>Leadership and collaboration</h3>
+      <ul>{% for item in result.job_analysis.leadership_collaboration %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+      <h3>Repeated themes</h3>
+      <ul>{% for item in result.job_analysis.repeated_themes %}<li>{{ item }}</li>{% else %}<li>None explicitly identified</li>{% endfor %}</ul>
+    </div>
+  </div>
+
+  {% if result.job_analysis.inferred_notes %}
+  <h3>Inferences <span class="optional">(not stated requirements)</span></h3>
+  <ul>{% for n in result.job_analysis.inferred_notes %}<li>{{ n }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <h3>Requirement → evidence matrix</h3>
+  <div class="table-scroll">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Requirement</th>
+          <th>Class</th>
+          <th>Importance</th>
+          <th>Evidence</th>
+          <th>Strength</th>
+          <th>Coverage</th>
+          <th>Treatment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in result.optimized_assessment.matrix %}
+        <tr>
+          <td>
+            <div>{{ m.requirement }}</div>
+            {% if m.excerpt %}<div class="excerpt">“{{ m.excerpt }}”</div>{% endif %}
+          </td>
+          <td>{{ m.classification }}</td>
+          <td>{{ '%.2f'|format(m.importance) }}</td>
+          <td>{{ m.matching_evidence or "—" }}</td>
+          <td>{{ m.evidence_strength }}</td>
+          <td>{{ '%.0f'|format(m.current_coverage * 100) }}%</td>
+          <td>{{ m.recommended_treatment }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  </div>
+</details>
+
+<details class="panel result-detail" >
+  <summary>Read the resume text</summary>
+  <div class="detail-content">
+<article class="resume-preview">
+    <header>
+      <h3>{{ result.optimized_resume.contact.name }}</h3>
+      <p class="contact-line">
+        {% set c = result.optimized_resume.contact %}
+        {{ c.email }}{% if c.phone %} · {{ c.phone }}{% endif %}{% if c.location %} · {{ c.location }}{% endif %}{% if c.linkedin %} · {{ c.linkedin }}{% endif %}{% if c.github %} · {{ c.github }}{% endif %}
+      </p>
+    </header>
+    {% if result.optimized_resume.summary %}
+    <h4>Summary</h4>
+    <p>{{ result.optimized_resume.summary }}</p>
+    {% endif %}
+    <h4>Experience</h4>
+    {% for role in result.optimized_resume.experience %}
+    <div class="role">
+      <div class="role-head">
+        <strong>{{ role.title }}{% if role.functional_descriptor %} — {{ role.functional_descriptor }}{% endif %}</strong>
+        <span>{{ role.start_date }} – {{ role.end_date }}</span>
+      </div>
+      <div class="employer">{{ role.employer }}{% if role.location %}, {{ role.location }}{% endif %}</div>
+      <ul>{% for b in role.bullets %}<li>{{ b.text }}</li>{% endfor %}</ul>
+    </div>
+    {% endfor %}
+    {% if result.optimized_resume.projects %}
+    <h4>Projects</h4>
+    {% for p in result.optimized_resume.projects %}
+    <div class="role">
+      <strong>{{ p.name }}</strong>
+      {% if p.technologies %}<span class="hint">{{ p.technologies | join(', ') }}</span>{% endif %}
+      <ul>{% for b in p.bullets %}<li>{{ b.text }}</li>{% endfor %}</ul>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% if result.optimized_resume.skills %}
+    <h4>Skills</h4>
+    {% for sg in result.optimized_resume.skills %}
+    <p><strong>{{ sg.category }}:</strong> {{ sg.skills | join(', ') }}</p>
+    {% endfor %}
+    {% endif %}
+    {% if result.optimized_resume.education %}
+    <h4>Education</h4>
+    {% for e in result.optimized_resume.education %}
+    <p><strong>{{ e.institution }}</strong> — {{ e.degree }} {{ e.field }} ({{ e.graduation_date }})</p>
+    {% endfor %}
+    {% endif %}
+  </article>
+  </div>
+</details>
+
+<details class="panel result-detail" >
+  <summary>Changes and content decisions</summary>
+  <div class="detail-content">
+{% if result.change_log %}
+  <ul class="changelog">
+    {% for c in result.change_log %}
+    <li>
+      <div class="before"><span>Before</span> {{ c.before }}</div>
+      <div class="after"><span>After</span> {{ c.after }}</div>
+      <div class="reason">{{ c.reason }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No bullet rewrites recorded (content may already have been concise).</p>
+  {% endif %}
+  {% if result.content_decisions %}
+  <h3>Content decisions</h3>
+  <ul>{% for d in result.content_decisions %}<li>{{ d }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if result.terminology_added %}
+  <h3>Terminology aligned (evidence-backed)</h3>
+  <ul>
+    {% for t in result.terminology_added %}
+    <li><strong>{{ t.term }}</strong> — {{ t.evidence }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  </div>
+</details>
+{% endblock %}
